@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Data outputs
+data/
+
+# Environment & Secrets
+.env
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
