@@ -1,0 +1,22 @@
+name: 'sunglasshut_dbt'
+version: '1.0.0'
+
+profile: 'sunglasshut_dbt'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  sunglasshut_dbt:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: fct_product_price_daily
+    description: "Daily product price snapshot, deduped per sku/gender/day"
+    columns:
+      - name: sku
+        tests: [not_null]
+      - name: offer_price
+        tests:
+          - not_null
+
+  - name: dim_product
+    description: "Latest known attributes per product"
+    columns:
+      - name: sku
+        tests: [not_null]
