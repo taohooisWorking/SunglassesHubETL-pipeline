@@ -1,6 +1,39 @@
+# Environment & Secrets
 .env
-*.env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
-data/raw/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
 .venv/
+venv/
+dbt_venv/
+env/
+ENV/
+
+# Scraped Data & Artifacts
+data/raw/
+
+# dbt
+target/
+**/target/
+dbt_packages/
+**/dbt_packages/
+dbt_modules/
+**/dbt_modules/
+
+# Logs
+logs/
+**/logs/
+*.log
+
+# OS & Editors
+.DS_Store
+.idea/
+.vscode/

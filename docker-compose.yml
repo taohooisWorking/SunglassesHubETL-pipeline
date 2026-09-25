@@ -1,0 +1,22 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: sgh_clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: sunglasshut
+      CLICKHOUSE_USER: dbt_user
+      CLICKHOUSE_PASSWORD: dbt_pass_change_me
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse/init:/docker-entrypoint-initdb.d
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+volumes:
+  clickhouse_data:

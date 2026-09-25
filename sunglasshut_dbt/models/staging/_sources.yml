@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: raw
+    tables:
+      - name: sunglasshut_products
+        description: "Raw product data scraped from Sunglass Hut's Algolia search index"
+        loaded_at_field: scraped_at
