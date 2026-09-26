@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS raw.sunglasshut_products
     isPolarized          UInt8,
     isOutOfStock         UInt8,
     isEngravable         UInt8,
+    isOnSale             UInt8 DEFAULT 0,
+    percentageDiscount   Nullable(Float64),
+    amountOfDiscount     Nullable(Float64),
     source_url           String,
     scraped_at           DateTime64(6, 'UTC'),
     _ingested_at         DateTime64(6, 'UTC') DEFAULT now64(6)
