@@ -1,7 +1,9 @@
-# Environment & Secrets
+# Environment & Secrets (.env.example is the committed template)
 .env
 .env.*
 !.env.example
+.direnv/
+.envrc
 
 # Python
 __pycache__/
@@ -18,19 +20,17 @@ env/
 ENV/
 
 # Scraped Data & Artifacts
-data/raw/
+data/
 
 # dbt
 target/
-**/target/
 dbt_packages/
-**/dbt_packages/
 dbt_modules/
-**/dbt_modules/
+dbt_internal_packages/
+.user.yml
 
 # Logs
 logs/
-**/logs/
 *.log
 
 # OS & Editors

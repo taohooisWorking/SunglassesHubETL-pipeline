@@ -2,16 +2,20 @@
 Central configuration for Sunglass Hut PLP scraper.
 """
 
-ALGOLIA_APP_ID = "21OGKM5TH5"
-ALGOLIA_API_KEY = "dc91173a4a5d669a3eef474e5836e94f"
-ALGOLIA_INDEX_NAME = "prod_live_sgh_en-us__grouped"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ALGOLIA_APP_ID = os.environ.get("ALGOLIA_APP_ID", "21OGKM5TH5")
+ALGOLIA_API_KEY = os.environ.get("ALGOLIA_API_KEY", "dc91173a4a5d669a3eef474e5836e94f")
+ALGOLIA_INDEX_NAME = os.environ.get("ALGOLIA_INDEX_NAME", "prod_live_sgh_en-us__grouped")
 ALGOLIA_URL = f"https://{ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/{ALGOLIA_INDEX_NAME}/query"
 
 CATEGORY_FACETS = {
     "women": "categories:gender_female",
     "men": "categories:gender_male",
 }
-CATEGORY_IDS = CATEGORY_FACETS
 
 # Price ranges to partition requests and stay under Algolia's 1000 hits/query limit
 PRICE_RANGES = [

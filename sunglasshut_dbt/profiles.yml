@@ -1,0 +1,15 @@
+# Reads connection settings from the same env vars as the scraper (.env).
+# dbt does not load .env itself — export it first:
+#   set -a; source ../.env; set +a
+sunglasshut_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      schema: analytics
+      host: "{{ env_var('CLICKHOUSE_HOST', 'localhost') }}"
+      port: "{{ env_var('CLICKHOUSE_PORT', '8123') | int }}"
+      user: "{{ env_var('CLICKHOUSE_USER') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      secure: false
+      verify: false

@@ -2,13 +2,14 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     container_name: sgh_clickhouse
+    # Credentials come from .env (see .env.example); Compose reads it automatically.
     ports:
-      - "8123:8123"
-      - "9000:9000"
+      - "${CLICKHOUSE_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
     environment:
-      CLICKHOUSE_DB: sunglasshut
-      CLICKHOUSE_USER: dbt_user
-      CLICKHOUSE_PASSWORD: dbt_pass_change_me
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:?set CLICKHOUSE_DB in .env}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:?set CLICKHOUSE_USER in .env}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD in .env}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     volumes:
       - clickhouse_data:/var/lib/clickhouse
