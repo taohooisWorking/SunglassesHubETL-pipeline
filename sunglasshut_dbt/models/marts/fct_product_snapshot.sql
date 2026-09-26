@@ -18,16 +18,11 @@ select
     sku,
     gender,
     brand,
-    product_name,
     list_price,
     offer_price,
-    (list_price is not null and offer_price is not null and list_price > offer_price) as is_on_sale,
-    round(
-        if(list_price is not null and list_price > 0 and offer_price is not null,
-           (list_price - offer_price) / list_price * 100, 0),
-        1
-    ) as discount_pct,
-    is_polarized,
+    is_on_sale,
+    coalesce(discount_pct, 0)          as discount_pct,
+    coalesce(discount_amount, 0)       as discount_amount,
     is_out_of_stock,
     scraped_date
 from ranked

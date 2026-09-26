@@ -12,6 +12,8 @@ select
     argMax(is_junior, scraped_at)          as is_junior,
     argMax(is_customizable, scraped_at)    as is_customizable,
     argMax(is_engravable, scraped_at)      as is_engravable,
+    argMax(is_polarized, scraped_at)       as is_polarized,
+    min(scraped_at)                        as first_seen_at,
     max(scraped_at)                        as last_seen_at
 from {{ ref('stg_sunglasshut_products') }}
 group by sku, gender

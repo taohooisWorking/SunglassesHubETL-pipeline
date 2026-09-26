@@ -12,6 +12,8 @@ select
     colorsNumber                       as colors_count,
     listPrice                          as list_price,
     offerPrice                         as offer_price,
+    percentageDiscount                 as discount_pct,
+    amountOfDiscount                   as discount_amount,
     img                                 as image_url,
     imgHover                           as image_hover_url,
     isJunior = 1                        as is_junior,
@@ -20,6 +22,7 @@ select
     isPolarized = 1                     as is_polarized,
     isOutOfStock = 1                    as is_out_of_stock,
     isEngravable = 1                    as is_engravable,
+    isOnSale = 1                        as is_on_sale,
     source_url,
     scraped_at,
     toDate(scraped_at)                 as scraped_date

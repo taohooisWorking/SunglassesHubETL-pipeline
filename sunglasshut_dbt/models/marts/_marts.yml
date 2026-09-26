@@ -1,17 +1,44 @@
 version: 2
 
 models:
-  - name: fct_product_price_daily
-    description: "Daily product price snapshot, deduped per sku/gender/day"
-    columns:
-      - name: sku
-        tests: [not_null]
-      - name: offer_price
-        tests:
-          - not_null
-
   - name: dim_product
-    description: "Latest known attributes per product"
+    description: "Latest attributes per product (sku + gender). Unisex SKUs appear once per gender."
+    data_tests:
+      - unique:
+          column_name: "concat(sku, '|', gender)"
     columns:
       - name: sku
-        tests: [not_null]
+        data_tests: [not_null]
+      - name: gender
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['women', 'men']
+
+  - name: dim_brand
+    description: "Brand-level rollup: catalog size, feature ratios, price positioning (latest snapshot)"
+    columns:
+      - name: brand
+        data_tests: [not_null, unique]
+      - name: price_tier
+        description: "Tier by median list price: budget <150, mid <250, premium <400, luxury >=400"
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['budget', 'mid', 'premium', 'luxury']
+
+  - name: fct_product_snapshot
+    description: "Daily snapshot of price, sale and stock status per product (sku + gender + day)"
+    data_tests:
+      - unique:
+          column_name: "concat(sku, '|', gender, '|', toString(scraped_date))"
+    columns:
+      - name: sku
+        data_tests: [not_null]
+      - name: scraped_date
+        data_tests: [not_null]
+      - name: gender
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['women', 'men']
