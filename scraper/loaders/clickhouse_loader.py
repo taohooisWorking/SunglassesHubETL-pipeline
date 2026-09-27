@@ -10,8 +10,8 @@ def get_client():
     return clickhouse_connect.get_client(
         host=os.environ.get("CLICKHOUSE_HOST", "localhost"),
         port=int(os.environ.get("CLICKHOUSE_PORT", 8123)),
-        username=os.environ.get("CLICKHOUSE_USER", "sunglasses_dbt"),
-        password=os.environ.get("CLICKHOUSE_PASSWORD", "sunglasses_dbt"),
+        username=os.environ["CLICKHOUSE_USER"],
+        password=os.environ["CLICKHOUSE_PASSWORD"],
         database=os.environ.get("CLICKHOUSE_RAW_DB", "raw"),
     )
 
@@ -41,6 +41,14 @@ def load_products(df: pd.DataFrame, client, table: str = "sunglasshut_products")
             df[col] = df[col].fillna("").astype(str)
 
     df["scraped_at"] = pd.to_datetime(df["scraped_at"])
+
+    # Idempotent per scrape run: re-loading the same run (e.g. an Airflow
+    # retry) replaces its rows instead of duplicating them.
+    for scraped_at in df["scraped_at"].unique():
+        client.command(
+            f"DELETE FROM {table} WHERE scraped_at = {{ts:DateTime64(6, 'UTC')}}",
+            parameters={"ts": pd.Timestamp(scraped_at).to_pydatetime()},
+        )
 
     client.insert_df(table, df)
     return len(df)

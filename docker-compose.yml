@@ -3,11 +3,12 @@ services:
     image: clickhouse/clickhouse-server:24.8
     container_name: sgh_clickhouse
     # Credentials come from .env (see .env.example); Compose reads it automatically.
+    # Everything else has a default and can be overridden from .env if needed.
     ports:
       - "${CLICKHOUSE_PORT:-8123}:8123"
       - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
     environment:
-      CLICKHOUSE_DB: ${CLICKHOUSE_DB:?set CLICKHOUSE_DB in .env}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-sunglasses_dbt}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:?set CLICKHOUSE_USER in .env}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set CLICKHOUSE_PASSWORD in .env}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
@@ -19,5 +20,24 @@ services:
         soft: 262144
         hard: 262144
 
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    container_name: sgh_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_PORT:-9003}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   clickhouse_data:
+  minio_data:

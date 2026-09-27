@@ -1,12 +1,12 @@
 """
 scraper.extractors.products_api
 Extracts product listings directly from Sunglass Hut's Algolia Search API.
-Covers both men's and women's categories through one parameterized function.
+fetch_raw_hits() is the extract step; build_products() is the transform step.
 """
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List
 
 import pandas as pd
 import requests
@@ -208,62 +208,56 @@ def _fetch_by_price_ranges(facet_filters: List[str], label: str) -> List[Dict[st
     return all_hits
 
 
-def fetch_products(gender: Literal["men", "women"]) -> pd.DataFrame:
+def fetch_raw_hits() -> Dict[str, List[Dict[str, Any]]]:
     """
-    Fetches all products for the given gender category from the Algolia API.
-    Uses price ranges to partition queries and bypass the 1000 hits limit.
-    Returns a DataFrame with the selected product columns plus scrape metadata.
+    Extract step: queries Algolia and returns the untransformed hits, keyed by
+    the query that produced them: one entry per gender facet plus "on_sale".
+
+    A merchandising Query Rule on this index (qr-1758165374462) fires whenever
+    a gender category filter is present and silently hides every ON_SALE
+    variant, so on-sale items are queried separately WITHOUT the gender facet
+    and assigned to a gender later in build_products().
     """
-    if gender not in CATEGORY_FACETS:
-        raise ValueError(
-            f"Unknown gender '{gender}', expected one of {list(CATEGORY_FACETS)}"
-        )
+    raw = {
+        gender: _fetch_by_price_ranges([facet], gender)
+        for gender, facet in CATEGORY_FACETS.items()
+    }
+    raw["on_sale"] = _fetch_by_price_ranges([SALE_FACET], "on_sale")
+    return raw
 
-    facet = CATEGORY_FACETS[gender]
-    logger.info(f"Fetching Algolia catalog for gender={gender} (facet={facet})")
 
-    seen_ids = set()
-    records: List[Dict[str, Any]] = []
+def build_products(raw: Dict[str, List[Dict[str, Any]]], scraped_at: datetime) -> pd.DataFrame:
+    """
+    Transform step: turns the hits from fetch_raw_hits() into one DataFrame of
+    product records for both genders, plus scrape metadata.
+    """
+    dfs = []
+    for gender, facet in CATEGORY_FACETS.items():
+        gender_tag = facet.split(":", 1)[1]
+        # On-sale hits never overlap the gender pass by objectID; keep only the
+        # ones tagged with this gender's category.
+        hits = raw.get(gender, []) + [
+            h for h in raw.get("on_sale", []) if gender_tag in h.get("categories", [])
+        ]
 
-    # 1) The gender PLP catalog. A merchandising Query Rule on this index
-    #    (qr-1758165374462) fires whenever a gender category filter is present
-    #    and silently hides every ON_SALE variant, so this pass never returns
-    #    on-sale items.
-    # 2) On-sale variants, queried WITHOUT the gender facet (so the rule does
-    #    not fire) and assigned to this gender client-side via `categories`.
-    #    Their objectIDs never overlap with pass 1.
-    gender_tag = facet.split(":", 1)[1]
-    passes = [
-        ([facet], None),
-        ([SALE_FACET], lambda h: gender_tag in h.get("categories", [])),
-    ]
-
-    for facet_filters, keep in passes:
-        for hit in _fetch_by_price_ranges(facet_filters, gender):
-            if keep and not keep(hit):
-                continue
+        seen_ids = set()
+        records: List[Dict[str, Any]] = []
+        for hit in hits:
             obj_id = hit.get("objectID") or hit.get("partnumberId")
             if obj_id and obj_id in seen_ids:
                 continue
             if obj_id:
                 seen_ids.add(obj_id)
-
             records.append(_transform_hit(hit))
 
-    df = pd.DataFrame(records)
-    if df.empty:
-        df = pd.DataFrame(columns=COLUMNS)
+        df = pd.DataFrame(records)
+        if df.empty:
+            df = pd.DataFrame(columns=COLUMNS)
+        df["gender"] = gender
+        df["scraped_at"] = scraped_at.isoformat()
+        df["source_url"] = REFERERS.get(gender, "")
 
-    scraped_at = datetime.now(timezone.utc).isoformat()
-    df["gender"] = gender
-    df["scraped_at"] = scraped_at
-    df["source_url"] = REFERERS.get(gender, "")
+        logger.info(f"Built {len(df)} products for gender={gender}")
+        dfs.append(df)
 
-    logger.info(f"Fetched {len(df)} products for gender={gender}")
-    return df
-
-
-def fetch_all_genders() -> pd.DataFrame:
-    """Fetches both men's and women's catalogs and combines them into one DataFrame."""
-    dfs = [fetch_products(gender) for gender in CATEGORY_FACETS]
     return pd.concat(dfs, ignore_index=True)
