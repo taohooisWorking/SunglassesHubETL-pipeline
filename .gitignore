@@ -19,9 +19,6 @@ dbt_venv/
 env/
 ENV/
 
-# Scraped Data & Artifacts
-data/
-
 # dbt
 target/
 dbt_packages/
