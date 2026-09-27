@@ -5,6 +5,7 @@ fetch_raw_hits() is the extract step; build_products() is the transform step.
 """
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -169,6 +170,39 @@ def _transform_hit(hit: Dict[str, Any]) -> Dict[str, Any]:
 
 SALE_FACET = "attributes.ON_SALE:TRUE"
 
+MAX_ATTEMPTS = 4
+RETRY_BACKOFF_SECONDS = 2  # doubles each attempt: 2, 4, 8
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
+def _post_with_retry(payload: Dict[str, Any], label: str) -> Dict[str, Any]:
+    """
+    POSTs one Algolia query and returns the parsed JSON, retrying transient
+    failures. Algolia occasionally drops the connection mid-body on large
+    (~2MB) responses (ChunkedEncodingError / IncompleteRead); that happens
+    while reading the body, so urllib3's Retry on the adapter doesn't cover it.
+    """
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            response = requests.post(
+                ALGOLIA_URL,
+                headers=DEFAULT_HEADERS,
+                json=payload,
+                timeout=30,
+            )
+            if response.status_code not in RETRYABLE_STATUS:
+                response.raise_for_status()
+                return response.json()
+            error: Exception = requests.HTTPError(f"HTTP {response.status_code}", response=response)
+        except (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError) as e:
+            error = e
+
+        if attempt == MAX_ATTEMPTS:
+            raise error
+        delay = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
+        logger.warning(f"{label}: attempt {attempt}/{MAX_ATTEMPTS} failed ({error!r}), retrying in {delay}s")
+        time.sleep(delay)
+
 
 def _fetch_by_price_ranges(facet_filters: List[str], label: str) -> List[Dict[str, Any]]:
     """
@@ -184,15 +218,7 @@ def _fetch_by_price_ranges(facet_filters: List[str], label: str) -> List[Dict[st
             f'&numericFilters=["sortPrice_Guest>={low}", "sortPrice_Guest<{high}"]'
             f'&hitsPerPage=1000'
         )
-        payload = {"params": params}
-        response = requests.post(
-            ALGOLIA_URL,
-            headers=DEFAULT_HEADERS,
-            json=payload,
-            timeout=30,
-        )
-        response.raise_for_status()
-        data = response.json()
+        data = _post_with_retry({"params": params}, f"{label} price[{low},{high})")
         hits = data.get("hits", [])
         nb_hits = data.get("nbHits", 0)
 
