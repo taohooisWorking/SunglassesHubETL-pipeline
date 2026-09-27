@@ -42,3 +42,14 @@ models:
           - accepted_values:
               arguments:
                 values: ['women', 'men']
+
+  - name: mart_product_catalog
+    description: "One row per SKU in the latest snapshot, for BI tools. A SKU listed under both genders is 'unisex'."
+    columns:
+      - name: sku
+        data_tests: [not_null, unique]
+      - name: gender_group
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['women', 'men', 'unisex']
